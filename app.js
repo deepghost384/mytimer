@@ -30,7 +30,7 @@ const CountdownTimer = () => {
 
     if (difference <= 0) {
       setIsRunning(false);
-      playAlarmSound();
+      // Alert notification removed from here
       return {
         days: 0,
         hours: 0,
@@ -163,8 +163,9 @@ const CountdownTimer = () => {
     }
   };
   
+  // This function is no longer called
   const playAlarmSound = () => {
-    alert(`時間になりました！`);
+    // Alert removed from here
   };
 
   // 日付フォーマット
