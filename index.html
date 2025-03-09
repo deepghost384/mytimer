@@ -33,16 +33,14 @@
       padding: 20px;
     }
   </style>
+  <!-- React と ReactDOM を正しいCDNから読み込む -->
+  <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="dark">
   <div id="app"></div>
   
-  <!-- React, ReactDOM, Babelの読み込み -->
-  <script src="https://unpkg.com/react@17/umd/react.development.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <!-- アプリケーションコードの読み込み -->
   <script type="text/babel">
     const CountdownTimer = () => {
       const [targetDate, setTargetDate] = React.useState(new Date());
