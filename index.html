@@ -37,10 +37,400 @@
 <body class="dark">
   <div id="app"></div>
   
-  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+  <!-- React, ReactDOM, Babelの読み込み -->
+  <script src="https://unpkg.com/react@17/umd/react.development.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
-  <script type="text/babel" src="app.js"></script>
+  <!-- アプリケーションコードの読み込み -->
+  <script type="text/babel">
+    const CountdownTimer = () => {
+      const [targetDate, setTargetDate] = React.useState(new Date());
+      const [startDate, setStartDate] = React.useState(new Date());
+      const [remainingTime, setRemainingTime] = React.useState({
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        totalSeconds: 0
+      });
+      const [isRunning, setIsRunning] = React.useState(false);
+      const [inputEndDateTime, setInputEndDateTime] = React.useState('');
+      const [inputStartDateTime, setInputStartDateTime] = React.useState('');
+      const [totalSeconds, setTotalSeconds] = React.useState(0);
+      const [theme, setTheme] = React.useState('dark'); // 'dark' or 'light'
+
+      // テーマの切り替え
+      const toggleTheme = () => {
+        const newTheme = theme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+        document.body.className = newTheme;
+      };
+
+      // 残り時間を計算
+      const calculateTimeRemaining = () => {
+        const now = new Date();
+        // 現在時刻が開始時間より前の場合は、開始時間からのカウントダウン
+        const currentBase = now < startDate ? startDate : now;
+        const difference = targetDate - currentBase;
+
+        if (difference <= 0) {
+          setIsRunning(false);
+          playAlarmSound();
+          return {
+            days: 0,
+            hours: 0,
+            minutes: 0,
+            seconds: 0,
+            totalSeconds: 0
+          };
+        }
+
+        const totalSecondsRemaining = Math.floor(difference / 1000);
+        
+        return {
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60),
+          totalSeconds: totalSecondsRemaining
+        };
+      };
+
+      // Calculate total duration and progress percentage
+      const calculateProgressPercentage = () => {
+        const now = new Date();
+        const totalDuration = targetDate - startDate; // 全体の期間
+        
+        if (now < startDate) {
+          // 開始前はプログレスバーは100%（まだ減っていない）
+          return 100;
+        } else if (now >= targetDate) {
+          // 終了後はプログレスバーは0%
+          return 0;
+        } else {
+          // 進行中は経過時間に応じて減少
+          const elapsedTime = now - startDate;
+          const remainingTime = targetDate - now;
+          return (remainingTime / totalDuration) * 100;
+        }
+      };
+
+      // 残り時間に応じた色を取得
+      const getAccentColor = () => {
+        const now = new Date();
+        
+        // 開始前は青系統
+        if (now < startDate) {
+          return '#3b82f6'; // Blue
+        }
+        
+        // 開始後は進行状況に応じて色変化
+        const totalDuration = targetDate - startDate;
+        const remainingTime = targetDate - now;
+        const progress = remainingTime / totalDuration;
+        
+        if (progress > 0.6) return '#6d28d9'; // Purple
+        if (progress > 0.3) return '#7c3aed'; // Lighter purple
+        return '#9333ea'; // Vibrant purple
+      };
+
+      React.useEffect(() => {
+        let timer = null;
+        
+        if (isRunning) {
+          // まず現在の状態を確認
+          const now = new Date();
+          
+          // 開始時間が未来の場合は、開始時間までのカウントダウン表示を更新
+          if (now < startDate) {
+            const timeUntilStart = {
+              days: Math.floor((startDate - now) / (1000 * 60 * 60 * 24)),
+              hours: Math.floor(((startDate - now) / (1000 * 60 * 60)) % 24),
+              minutes: Math.floor(((startDate - now) / 1000 / 60) % 60),
+              seconds: Math.floor(((startDate - now) / 1000) % 60),
+              totalSeconds: Math.floor((startDate - now) / 1000)
+            };
+            setRemainingTime(timeUntilStart);
+          }
+          
+          timer = setInterval(() => {
+            const timeRemaining = calculateTimeRemaining();
+            setRemainingTime(timeRemaining);
+            
+            if (timeRemaining.totalSeconds <= 0) {
+              clearInterval(timer);
+              setIsRunning(false);
+            }
+          }, 1000);
+        }
+        
+        return () => {
+          if (timer) clearInterval(timer);
+        };
+      }, [isRunning, targetDate, startDate]);
+
+      const startTimer = () => {
+        if (!isRunning) {
+          const timeRemaining = calculateTimeRemaining();
+          setRemainingTime(timeRemaining);
+          setTotalSeconds(timeRemaining.totalSeconds);
+          setIsRunning(true);
+        }
+      };
+
+      const resetTimer = () => {
+        setIsRunning(false);
+        const timeRemaining = calculateTimeRemaining();
+        setRemainingTime(timeRemaining);
+        setTotalSeconds(timeRemaining.totalSeconds);
+      };
+
+      const setCustomDateTime = () => {
+        try {
+          const newTargetDate = new Date(inputEndDateTime);
+          const newStartDate = inputStartDateTime ? new Date(inputStartDateTime) : new Date();
+          
+          // 終了時間が開始時間より前かチェック
+          if (newTargetDate <= newStartDate) {
+            alert('終了日時は開始日時より後に設定してください');
+            return;
+          }
+          
+          setTargetDate(newTargetDate);
+          setStartDate(newStartDate);
+          setIsRunning(false);
+          
+          const timeRemaining = calculateTimeRemaining();
+          setRemainingTime(timeRemaining);
+          setTotalSeconds(timeRemaining.totalSeconds);
+        } catch (error) {
+          alert('有効な日時を入力してください');
+        }
+      };
+      
+      const playAlarmSound = () => {
+        alert(`時間になりました！`);
+      };
+
+      // 日付フォーマット
+      const formatDateForDisplay = (date) => {
+        return date.toLocaleString('ja-JP', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      };
+
+      // 背景のグラデーションスタイル
+      const backgroundStyle = {
+        background: theme === 'dark' 
+          ? 'linear-gradient(135deg, #1e1e2f 0%, #2d3748 100%)' 
+          : 'linear-gradient(135deg, #f0f4ff 0%, #e2e8f0 100%)',
+        color: theme === 'dark' ? '#fff' : '#1a202c',
+        transition: 'all 0.5s ease'
+      };
+
+      // 数字表示ブロックのスタイル
+      const timeBlockStyle = {
+        background: theme === 'dark' 
+          ? 'rgba(26, 32, 44, 0.8)' 
+          : 'rgba(255, 255, 255, 0.8)',
+        boxShadow: theme === 'dark'
+          ? '0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2)'
+          : '0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1)',
+        color: theme === 'dark' ? '#fff' : '#1a202c',
+        borderRadius: '12px',
+        padding: '12px 0',
+        width: '100%',
+        transition: 'all 0.5s ease'
+      };
+
+      return (
+        <div className="flex flex-col items-center p-8 max-w-lg mx-auto rounded-xl shadow-2xl" style={backgroundStyle}>
+          {/* Theme Toggle Switch */}
+          <div className="self-end mb-4">
+            <button 
+              onClick={toggleTheme}
+              className="flex items-center p-2 rounded-full transition-all duration-300 transform hover:scale-110"
+              style={{
+                background: theme === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.1)' 
+                  : 'rgba(0, 0, 0, 0.1)',
+                border: `1px solid ${theme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}`,
+                width: '36px',
+                height: '36px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+              aria-label={theme === 'dark' ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+            >
+              {theme === 'dark' ? '☀' : '☽'}
+            </button>
+          </div>
+          
+          <h1 className="text-3xl font-bold mb-4" style={{
+            color: getAccentColor(),
+            fontFamily: "'Montserrat', sans-serif"
+          }}>カウントダウン</h1>
+          
+          <div className="mb-6 text-lg opacity-80 text-center">
+            {inputStartDateTime && (
+              <div>{formatDateForDisplay(startDate)}から</div>
+            )}
+            <div>{formatDateForDisplay(targetDate)}まで</div>
+          </div>
+          
+          {/* Digital Countdown Display */}
+          <div className="grid grid-cols-4 gap-3 mb-8 text-center w-full">
+            <div className="flex flex-col items-center">
+              <div style={timeBlockStyle}>
+                <div className="text-5xl font-mono font-bold transition-all duration-300" style={{
+                  color: getAccentColor(),
+                  textShadow: theme === 'dark' ? '0 0 10px rgba(109, 40, 217, 0.5)' : 'none'
+                }}>
+                  {remainingTime.days}
+                </div>
+                <div className="text-xs mt-1 opacity-70">日</div>
+              </div>
+            </div>
+            <div className="flex flex-col items-center">
+              <div style={timeBlockStyle}>
+                <div className="text-5xl font-mono font-bold transition-all duration-300" style={{
+                  color: getAccentColor(),
+                  textShadow: theme === 'dark' ? '0 0 10px rgba(109, 40, 217, 0.5)' : 'none'
+                }}>
+                  {remainingTime.hours.toString().padStart(2, '0')}
+                </div>
+                <div className="text-xs mt-1 opacity-70">時間</div>
+              </div>
+            </div>
+            <div className="flex flex-col items-center">
+              <div style={timeBlockStyle}>
+                <div className="text-5xl font-mono font-bold transition-all duration-300" style={{
+                  color: getAccentColor(),
+                  textShadow: theme === 'dark' ? '0 0 10px rgba(109, 40, 217, 0.5)' : 'none'
+                }}>
+                  {remainingTime.minutes.toString().padStart(2, '0')}
+                </div>
+                <div className="text-xs mt-1 opacity-70">分</div>
+              </div>
+            </div>
+            <div className="flex flex-col items-center">
+              <div style={timeBlockStyle}>
+                <div className="text-5xl font-mono font-bold transition-all duration-300" style={{
+                  color: getAccentColor(),
+                  textShadow: theme === 'dark' ? '0 0 10px rgba(109, 40, 217, 0.5)' : 'none'
+                }}>
+                  {remainingTime.seconds.toString().padStart(2, '0')}
+                </div>
+                <div className="text-xs mt-1 opacity-70">秒</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Visual Progress Indicator */}
+          <div className="w-full h-3 bg-gray-700 bg-opacity-40 rounded-full mb-8 overflow-hidden">
+            <div 
+              className="h-full rounded-full transition-all duration-1000 ease-out"
+              style={{ 
+                width: `${calculateProgressPercentage()}%`,
+                background: `linear-gradient(90deg, ${getAccentColor()} 0%, #c084fc 100%)`
+              }}
+            />
+          </div>
+          
+          {/* Timer Controls */}
+          <div className="flex space-x-6 mb-8 justify-center">
+            <button 
+              onClick={startTimer} 
+              disabled={isRunning}
+              className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 ${
+                isRunning 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'shadow-lg'
+              }`}
+              style={{
+                background: 'linear-gradient(45deg, #6d28d9, #8b5cf6)',
+                color: '#fff',
+                minWidth: '120px'
+              }}
+            >
+              {isRunning ? "実行中" : "スタート"}
+            </button>
+            <button 
+              onClick={resetTimer}
+              className="px-6 py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 shadow-lg"
+              style={{
+                background: theme === 'dark'
+                  ? 'rgba(161, 98, 247, 0.2)'
+                  : 'rgba(161, 98, 247, 0.1)',
+                border: '1px solid rgba(161, 98, 247, 0.5)',
+                color: theme === 'dark' ? '#fff' : '#6d28d9',
+                minWidth: '120px'
+              }}
+            >
+              リセット
+            </button>
+          </div>
+          
+          {/* Date/Time Input */}
+          <div className="w-full space-y-3 mb-2">        
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium opacity-80">開始日時 (オプション):</label>
+              <input
+                type="datetime-local"
+                value={inputStartDateTime}
+                onChange={(e) => setInputStartDateTime(e.target.value)}
+                className="p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300"
+                style={{
+                  background: theme === 'dark' 
+                    ? 'rgba(26, 32, 44, 0.8)' 
+                    : 'rgba(255, 255, 255, 0.8)',
+                  border: `1px solid ${getAccentColor()}`,
+                  color: theme === 'dark' ? '#fff' : '#1a202c',
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium opacity-80">終了日時 (必須):</label>
+              <input
+                type="datetime-local"
+                value={inputEndDateTime}
+                onChange={(e) => setInputEndDateTime(e.target.value)}
+                className="p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300"
+                style={{
+                  background: theme === 'dark' 
+                    ? 'rgba(26, 32, 44, 0.8)' 
+                    : 'rgba(255, 255, 255, 0.8)',
+                  border: `1px solid ${getAccentColor()}`,
+                  color: theme === 'dark' ? '#fff' : '#1a202c',
+                }}
+                required
+              />
+            </div>
+
+            <button 
+              onClick={setCustomDateTime}
+              className="w-full px-4 py-3 rounded-lg font-medium mt-2 transition-all duration-300 transform hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              style={{
+                background: `linear-gradient(45deg, ${getAccentColor()}, #c084fc)`,
+                color: '#fff',
+              }}
+            >
+              日時を設定する
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    // React コンポーネントをレンダリング
+    ReactDOM.render(<CountdownTimer />, document.getElementById('app'));
+  </script>
 </body>
 </html>
