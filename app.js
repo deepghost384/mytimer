@@ -30,7 +30,7 @@ const CountdownTimer = () => {
 
     if (difference <= 0) {
       setIsRunning(false);
-      // Alert notification removed from here
+      // アラート通知を完全に削除 (関数呼び出しなし)
       return {
         days: 0,
         hours: 0,
@@ -163,10 +163,7 @@ const CountdownTimer = () => {
     }
   };
   
-  // This function is no longer called
-  const playAlarmSound = () => {
-    // Alert removed from here
-  };
+  // playAlarmSound関数を完全に削除
 
   // 日付フォーマット
   const formatDateForDisplay = (date) => {
